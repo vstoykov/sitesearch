@@ -62,28 +62,37 @@ def iter_sitemap_urls(url):
         raise ValueError('Invalid sitemap')
 
 
-def search_in_urls(sitemap_url, search_string, concurency=4):
+def iter_search_in_urls(urls, search_string):
+    """
+    Accepts iterable of urls and search string.
+    Yelds urls in which the given search string was found and the number
+    of ocurances of that string in the given url.
+    """
+    with requests.session() as session:
+        for url in urls:
+            response = session.get(url)
+            count = response.text.count(search_string)
+            if count:
+                logger.info('Search string found %d time(s) in %s', count, url)
+                yield url, count
+
+
+def search_in_site(sitemap_url, search_string, concurency=4):
     """
     Concurently iterate over URLs in a sitemap and search for string.
     Return iterator with the results.
     Every result is a tuple of url and number of occurrences
     """
     q = queue.Queue()
-
-    def worker(items):
-        with requests.session() as session:
-            for url in items:
-                response = session.get(url)
-                count = response.text.count(search_string)
-                if count:
-                    logger.info('Search string found %d time(s) in %s', count, url)
-                    q.put((url, count))
-
     threads = []
     items = safeiter(iter_sitemap_urls(sitemap_url))
 
+    def worker(items, q):
+        for item in iter_search_in_urls(items, search_string):
+            q.put(item)
+
     for i in range(concurency):
-        thread = threading.Thread(target=worker, args=(items,))
+        thread = threading.Thread(target=worker, args=(items, q))
         thread.start()
         threads.append(thread)
 
@@ -147,7 +156,7 @@ def main():
 
     url = args.sitemap
 
-    results = search_in_urls(url, args.search_str, concurency=args.concurency)
+    results = search_in_site(url, args.search_str, concurency=args.concurency)
     print('\n'.join(map(lambda r: ','.join(map(str, r)), results)))
 
 
