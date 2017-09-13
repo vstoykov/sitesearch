@@ -70,33 +70,25 @@ def search_in_urls(sitemap_url, search_string, concurency=4):
     """
     q = queue.Queue()
 
-    def worker(items, session):
-        for url in items:
-            response = session.get(url)
-            count = response.text.count(search_string)
-            if count:
-                logger.info('Search string found %d time(s) in %s', count, url)
-                q.put((url, count))
+    def worker(items):
+        with requests.session() as session:
+            for url in items:
+                response = session.get(url)
+                count = response.text.count(search_string)
+                if count:
+                    logger.info('Search string found %d time(s) in %s', count, url)
+                    q.put((url, count))
 
     threads = []
-    sessions = []
     items = safeiter(iter_sitemap_urls(sitemap_url))
 
-    try:
-        for i in range(concurency):
-            # Use different session per worker.
-            # This will ensure separate connection per worker.
-            session = requests.session()
-            thread = threading.Thread(target=worker, args=(items, session))
-            thread.start()
-            threads.append(thread)
-            sessions.append(session)
+    for i in range(concurency):
+        thread = threading.Thread(target=worker, args=(items,))
+        thread.start()
+        threads.append(thread)
 
-        for thread in threads:
-            thread.join()
-    finally:
-        for session in sessions:
-            session.close()
+    for thread in threads:
+        thread.join()
 
     q.put(StopIteration)
 
