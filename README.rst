@@ -1,8 +1,10 @@
-# Site Searcher
+Site Searcher
+---------------
 
 You can search for given string in a website by providing url to a sitemap and desired string.
 
-## Usage
+Usage
+=====
 
 ::
 
@@ -26,6 +28,7 @@ You can search for given string in a website by providing url to a sitemap and d
                             How many concurrent connections to make to the server.
                             (By default 5)
 
-## Requires
+Requires
+========
 
 It runs on Python 2 and 3. Requires :code:`requests` and :code:`lxml`
