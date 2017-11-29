@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
+from __future__ import print_function
+
 import argparse
 import logging
+import os
 import threading
 import queue
 
@@ -170,7 +173,8 @@ def main():
     url = args.sitemap
 
     results = search_in_site(url, args.search_str, concurency=args.concurency)
-    print('\n'.join(map(lambda r: ','.join(map(str, r)), results)))
+    print(*map(lambda r: ','.join(map(str, r)), results),
+          sep=os.linesep)
 
 
 if __name__ == '__main__':
