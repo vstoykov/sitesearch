@@ -84,20 +84,32 @@ def search_in_site(sitemap_url, search_string, concurency=4):
     Every result is a tuple of url and number of occurrences
     """
     q = queue.Queue()
-    threads = []
     items = safeiter(iter_sitemap_urls(sitemap_url))
 
-    def worker(items, q):
+    def worker():
         for item in iter_search_in_urls(items, search_string):
             q.put(item)
+
+    _thread_executor(target=worker, concurency=concurency)
 
     sentinel = object()
     q.put(sentinel)
 
     return iter(q.get, sentinel)
 
+
+def _thread_executor(target, concurency):
+    """
+    Simple function to execute given targed concurently with threads
+    """
+    if concurency == 1:
+        # If concurency is 1 there is no need to spawn threads
+        target()
+        return
+
+    threads = []
     for i in range(concurency):
-        thread = threading.Thread(target=worker, args=(items, q))
+        thread = threading.Thread(target=target)
         thread.start()
         threads.append(thread)
 
