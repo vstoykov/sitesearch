@@ -91,6 +91,11 @@ def search_in_site(sitemap_url, search_string, concurency=4):
         for item in iter_search_in_urls(items, search_string):
             q.put(item)
 
+    sentinel = object()
+    q.put(sentinel)
+
+    return iter(q.get, sentinel)
+
     for i in range(concurency):
         thread = threading.Thread(target=worker, args=(items, q))
         thread.start()
@@ -98,10 +103,6 @@ def search_in_site(sitemap_url, search_string, concurency=4):
 
     for thread in threads:
         thread.join()
-
-    q.put(StopIteration)
-
-    return iter(q.get, StopIteration)
 
 
 class safeiter:
