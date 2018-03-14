@@ -4,6 +4,7 @@ from __future__ import print_function
 import argparse
 import logging
 import os
+import sys
 import threading
 import queue
 
@@ -93,7 +94,15 @@ def search_in_site(sitemap_url, search_string, concurency=4):
         for item in iter_search_in_urls(items, search_string):
             q.put(item)
 
-    _thread_executor(target=worker, concurency=concurency)
+    try:
+        _thread_executor(target=worker, concurency=concurency)
+    finally:
+        # Allways close the items generator even if exception is raised.
+        # This will ensure that there will be no more itms for threads
+        # to process and the program will close almost immediately.
+        # If we do not close the generator on exception the threads will
+        # continue to run until they finish theirs job.
+        items.close()
 
     sentinel = object()
     q.put(sentinel)
@@ -138,6 +147,9 @@ class safeiter:
     def next(self):
         return self.__next__()
 
+    def close(self):
+        self.it.close()
+
 
 def main():
     arg_parser = argparse.ArgumentParser(description="Search for text in a website. Use site's XML sitemap to find URLs."
@@ -178,4 +190,8 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        # When Ctrl + C is pressed we want to exit without exception
+        sys.exit()
