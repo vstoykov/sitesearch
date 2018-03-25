@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import contextlib
 import logging
 import sys
 import threading
@@ -93,44 +94,32 @@ def search_in_site(sitemap_url, search_string, concurency=4):
     """
     q = queue.Queue()
     items = safeiter(iter_sitemap_urls(sitemap_url))
+    sentinel = object()
+    local = threading.local()
+    local.nworkers = concurency
 
     def worker():
         for item in iter_search_in_urls(items, search_string):
             q.put(item)
+        # Put sentinel to tell that the worker is done
+        q.put(sentinel)
 
-    try:
-        _thread_executor(target=worker, concurency=concurency)
-    finally:
-        # Allways close the items generator even if exception is raised.
-        # This will ensure that there will be no more itms for threads
-        # to process and the program will close almost immediately.
-        # If we do not close the generator on exception the threads will
-        # continue to run until they finish theirs job.
-        items.close()
+    def qget():
+        item = q.get()
+        while item is sentinel:
+            local.nworkers -= 1
+            if local.nworkers < 1:
+                # There is no more workers and if we try to get from queue
+                # it will hang forever.
+                break
+            item = q.get()
+        return item
 
-    sentinel = object()
-    q.put(sentinel)
+    with contextlib.closing(items):
+        for _i in range(concurency):
+            threading.Thread(target=worker).start()
 
-    return iter(q.get, sentinel)
-
-
-def _thread_executor(target, concurency):
-    """
-    Simple function to execute given targed concurently with threads
-    """
-    if concurency == 1:
-        # If concurency is 1 there is no need to spawn threads
-        target()
-        return
-
-    threads = []
-    for i in range(concurency):
-        thread = threading.Thread(target=target)
-        thread.start()
-        threads.append(thread)
-
-    for thread in threads:
-        thread.join()
+        yield from iter(qget, sentinel)
 
 
 class safeiter:
@@ -184,11 +173,11 @@ def main():
                         level=LOGGING_LEVELS[args.verbose])
 
     url = args.sitemap
-
     results = search_in_site(url, args.search_str, concurency=args.concurency)
-    unquote = urllib.parse.unquote
-    for (url, count) in results:
-        print(unquote(url), count, sep=',')
+    with contextlib.closing(results):
+        unquote = urllib.parse.unquote
+        for (url, count) in results:
+            print(unquote(url), count, sep=',')
 
 
 if __name__ == '__main__':
