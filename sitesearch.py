@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-from __future__ import print_function
-
 import argparse
 import logging
 import os
@@ -54,8 +52,7 @@ def iter_sitemap_urls(url):
         for sitemap in root:
             sitemap_url = sitemap.find('sitemap:loc', namespaces=XMLNS).text
             logger.debug('Sitemap URL: %s', sitemap_url)
-            for item in iter_sitemap_urls(sitemap_url):
-                yield item
+            yield from iter_sitemap_urls(sitemap_url)
     elif root.tag.endswith('urlset'):
         logger.debug('Processing sitemap: %s', url)
         for url in root:
@@ -143,9 +140,6 @@ class safeiter:
     def __next__(self):
         with self.lock:
             return next(self.it)
-
-    def next(self):
-        return self.__next__()
 
     def close(self):
         self.it.close()
