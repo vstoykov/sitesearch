@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 import argparse
 import logging
-import os
 import sys
 import threading
 import queue
+import urllib.parse
 
 import requests
 from lxml import etree
@@ -179,8 +179,9 @@ def main():
     url = args.sitemap
 
     results = search_in_site(url, args.search_str, concurency=args.concurency)
-    print(*map(lambda r: ','.join(map(str, r)), results),
-          sep=os.linesep)
+    unquote = urllib.parse.unquote
+    for (url, count) in results:
+        print(unquote(url), count, sep=',')
 
 
 if __name__ == '__main__':
