@@ -9,14 +9,16 @@ import urllib.parse
 import requests
 try:
     # Try fast ans secure ETree first
-from lxml import etree
+    from lxml import etree
 except ImportError:
     # Fallback to Python's builtin ETree
     from xml.etree import ElementTree as etree
 
 
 SITEMAP_NAMESPACE = 'http://www.sitemaps.org/schemas/sitemap/0.9'
-XMLNS = {'sitemap': SITEMAP_NAMESPACE}
+XMLNS = {'ns': SITEMAP_NAMESPACE}
+SITEMAP_INDEX_TAG = '{%s}sitemapindex' % SITEMAP_NAMESPACE
+URL_SET_TAG = '{%s}urlset' % SITEMAP_NAMESPACE
 
 DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 
@@ -52,18 +54,18 @@ def iter_sitemap_urls(url):
     else:
         root = tree.getroot()
 
-    if root.tag.endswith('sitemapindex'):
+    if root.tag == SITEMAP_INDEX_TAG:
         logger.debug('Processing sitemap index: %s', url)
-        for sitemap in root:
-            sitemap_url = sitemap.find('sitemap:loc', namespaces=XMLNS).text
-            logger.debug('Sitemap URL: %s', sitemap_url)
-            yield from iter_sitemap_urls(sitemap_url)
-    elif root.tag.endswith('urlset'):
+        for loc in root.iterfind('ns:sitemap/ns:loc', namespaces=XMLNS):
+            loc = loc.text.strip()
+            logger.debug('Sitemap URL: %s', loc)
+            yield from iter_sitemap_urls(loc)
+    elif root.tag == URL_SET_TAG:
         logger.debug('Processing sitemap: %s', url)
-        for url in root:
-            loc = url.find('sitemap:loc', namespaces=XMLNS).text.strip()
-            logger.debug('Location: %s', loc)
-            yield loc
+        for url in root.iterfind('ns:url/ns:loc', namespaces=XMLNS):
+            url = url.text.strip()
+            logger.debug('Location: %s', url)
+            yield url
     else:
         raise ValueError('Invalid sitemap')
 
