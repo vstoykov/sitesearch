@@ -7,7 +7,12 @@ import queue
 import urllib.parse
 
 import requests
+try:
+    # Try fast ans secure ETree first
 from lxml import etree
+except ImportError:
+    # Fallback to Python's builtin ETree
+    from xml.etree import ElementTree as etree
 
 
 SITEMAP_NAMESPACE = 'http://www.sitemaps.org/schemas/sitemap/0.9'
@@ -41,7 +46,7 @@ def iter_sitemap_urls(url):
     try:
         tree = etree.parse(url)
     except OSError:
-        # lxml cant't fetch the URL. Fallback with requests
+        # ETree cant't fetch the URL. Fallback with requests
         response = requests.get(url)
         root = etree.fromstring(response.content)
     else:

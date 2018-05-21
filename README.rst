@@ -31,4 +31,4 @@ Usage
 Requires
 ========
 
-It runs on Python 2 and 3. Requires :code:`requests` and :code:`lxml`
+It runs on Python 3. Requires :code:`requests`. Optionaly it will use :code:`lxml` if available for speed and security.
