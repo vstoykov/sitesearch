@@ -95,8 +95,7 @@ def search_in_site(sitemap_url, search_string, concurency=4):
     q = queue.Queue()
     items = safeiter(iter_sitemap_urls(sitemap_url))
     sentinel = object()
-    local = threading.local()
-    local.nworkers = concurency
+    nworkers = concurency
 
     def worker():
         try:
@@ -107,10 +106,11 @@ def search_in_site(sitemap_url, search_string, concurency=4):
             q.put(sentinel)
 
     def qget():
+        nonlocal nworkers
         item = q.get()
         while item is sentinel:
-            local.nworkers -= 1
-            if local.nworkers < 1:
+            nworkers -= 1
+            if nworkers < 1:
                 # There is no more workers and if we try to get from queue
                 # it will hang forever.
                 break
