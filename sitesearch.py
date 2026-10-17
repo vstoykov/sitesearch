@@ -39,7 +39,7 @@ LOGGING_LEVELS = {
 logger = logging.getLogger(__name__)
 
 
-def iter_sitemap_urls(url):
+def iter_sitemap_urls(sitemap_url):
     """
     Accept URL address that will be parsed as a sitemap.
     Yelds URL addresses from the sitemap.
@@ -47,24 +47,24 @@ def iter_sitemap_urls(url):
     and yeeld the URLs from there.
     """
     try:
-        tree = etree.parse(url)
+        tree = etree.parse(sitemap_url)
     except OSError:
         # ETree cant't fetch the URL. Fallback with requests
-        response = requests.get(url)
+        response = requests.get(sitemap_url, timeout=30)
         root = etree.fromstring(response.content)
     else:
         root = tree.getroot()
 
     if root.tag == SITEMAP_INDEX_TAG:
-        logger.debug('Processing sitemap index: %s', url)
+        logger.debug('Processing sitemap index: %s', sitemap_url)
         for loc in root.iterfind('ns:sitemap/ns:loc', namespaces=XMLNS):
-            loc = loc.text.strip()
-            logger.debug('Sitemap URL: %s', loc)
-            yield from iter_sitemap_urls(loc)
+            sitemap = loc.text.strip()
+            logger.debug('Sitemap URL: %s', sitemap)
+            yield from iter_sitemap_urls(sitemap)
     elif root.tag == URL_SET_TAG:
-        logger.debug('Processing sitemap: %s', url)
-        for url in root.iterfind('ns:url/ns:loc', namespaces=XMLNS):
-            url = url.text.strip()
+        logger.debug('Processing sitemap: %s', sitemap_url)
+        for loc in root.iterfind('ns:url/ns:loc', namespaces=XMLNS):
+            url = loc.text.strip()
             logger.debug('Location: %s', url)
             yield url
     else:
