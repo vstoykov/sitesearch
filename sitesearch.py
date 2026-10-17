@@ -140,7 +140,8 @@ class safeiter:
             return next(self.it)
 
     def close(self):
-        self.it.close()
+        with self.lock:
+            self.it.close()
 
 
 def main():
