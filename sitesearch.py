@@ -99,10 +99,12 @@ def search_in_site(sitemap_url, search_string, concurency=4):
     local.nworkers = concurency
 
     def worker():
-        for item in iter_search_in_urls(items, search_string):
-            q.put(item)
-        # Put sentinel to tell that the worker is done
-        q.put(sentinel)
+        try:
+            for item in iter_search_in_urls(items, search_string, search_in_all_responses=search_in_all_responses):
+                q.put(item)
+        finally:
+            # Put sentinel to tell that the worker is done
+            q.put(sentinel)
 
     def qget():
         item = q.get()
