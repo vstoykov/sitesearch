@@ -2,12 +2,13 @@
 import argparse
 import contextlib
 import logging
+import queue
 import sys
 import threading
-import queue
 import urllib.parse
 
 import requests
+
 try:
     # Try fast ans secure ETree first
     from lxml import etree
@@ -18,10 +19,8 @@ except ImportError:
 
 SITEMAP_NAMESPACE = 'http://www.sitemaps.org/schemas/sitemap/0.9'
 XMLNS = {'ns': SITEMAP_NAMESPACE}
-SITEMAP_INDEX_TAG = '{%s}sitemapindex' % SITEMAP_NAMESPACE
-URL_SET_TAG = '{%s}urlset' % SITEMAP_NAMESPACE
-
-DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
+SITEMAP_INDEX_TAG = f'{{{SITEMAP_NAMESPACE}}}sitemapindex'
+URL_SET_TAG = f'{{{SITEMAP_NAMESPACE}}}urlset'
 
 VERBOSE_HELP = (
     """Verbose mode. Controls the script output
@@ -183,8 +182,11 @@ def main():
     logging.basicConfig(format='%(levelname)s: %(message)s',
                         level=LOGGING_LEVELS[args.verbose])
 
-    url = args.sitemap
-    results = search_in_site(url, args.search_str, concurency=args.concurency, search_in_all_responses=args.search_in_all)
+    results = search_in_site(
+        args.sitemap, args.search_str,
+        concurency=args.concurency,
+        search_in_all_responses=args.search_in_all
+    )
     with contextlib.closing(results):
         unquote = urllib.parse.unquote
         for (url, count) in results:
