@@ -71,7 +71,7 @@ def iter_sitemap_urls(sitemap_url):
         raise ValueError('Invalid sitemap')
 
 
-def iter_search_in_urls(urls, search_string):
+def iter_search_in_urls(urls, search_string, search_in_all_responses=True):
     """
     Accepts iterable of urls and search string.
     Yelds urls in which the given search string was found and the number
@@ -79,14 +79,17 @@ def iter_search_in_urls(urls, search_string):
     """
     with requests.session() as session:
         for url in urls:
-            response = session.get(url)
+            response = session.get(url, timeout=30)
+            if response.status_code != 200 and not search_in_all_responses:
+                logger.warning('Skipping "%s" because status is: %d', url, response.status_code)
+                continue
             count = response.text.count(search_string)
             if count:
                 logger.info('Search string found %d time(s) in %s', count, url)
                 yield url, count
 
 
-def search_in_site(sitemap_url, search_string, concurency=4):
+def search_in_site(sitemap_url, search_string, concurency=4, search_in_all_responses=True):
     """
     Concurently iterate over URLs in a sitemap and search for string.
     Return iterator with the results.
@@ -169,6 +172,11 @@ def main():
                             default=5,
                             help='How many concurrent connections to make to the server.'
                                  '\n(By default 5)')
+    arg_parser.add_argument('--search-in-all',
+                            action=argparse.BooleanOptionalAction,
+                            default=True,
+                            help='Search in all responses no matter of response code.'
+                                  '\n(By default True)')
 
     args = arg_parser.parse_args()
 
@@ -176,7 +184,7 @@ def main():
                         level=LOGGING_LEVELS[args.verbose])
 
     url = args.sitemap
-    results = search_in_site(url, args.search_str, concurency=args.concurency)
+    results = search_in_site(url, args.search_str, concurency=args.concurency, search_in_all_responses=args.search_in_all)
     with contextlib.closing(results):
         unquote = urllib.parse.unquote
         for (url, count) in results:
