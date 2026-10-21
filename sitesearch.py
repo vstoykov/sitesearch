@@ -98,7 +98,7 @@ def iter_search_in_urls(urls, search_string, search_in_all_responses=True):
                 yield url, count
 
 
-def search_in_site(sitemap_url, search_string, concurency=4, search_in_all_responses=True):
+def search_in_site(sitemap_url, search_string, concurrency=4, search_in_all_responses=True):
     """
     Concurrently iterate over URLs in a sitemap and search for string.
     Return iterator with the results.
@@ -107,7 +107,7 @@ def search_in_site(sitemap_url, search_string, concurency=4, search_in_all_respo
     q = queue.Queue()
     items = safeiter(iter_sitemap_urls(sitemap_url))
     sentinel = object()
-    nworkers = concurency
+    nworkers = concurrency
 
     def worker():
         try:
@@ -130,7 +130,7 @@ def search_in_site(sitemap_url, search_string, concurency=4, search_in_all_respo
         return item
 
     with contextlib.closing(items):
-        for _i in range(concurency):
+        for _i in range(concurrency):
             threading.Thread(target=worker).start()
 
         yield from iter(qget, sentinel)
@@ -175,7 +175,7 @@ def main():
                             help=VERBOSE_HELP,
                             default=0,
                             choices=LOGGING_LEVELS)
-    arg_parser.add_argument('-c', '--concurency',
+    arg_parser.add_argument('-c', '--concurrency',
                             type=int,
                             required=False,
                             default=5,
@@ -192,13 +192,13 @@ def main():
     logging.basicConfig(format='%(levelname)s: %(message)s',
                         level=LOGGING_LEVELS[args.verbose])
 
-    if args.concurency < 1:
+    if args.concurrency < 1:
         logger.error("Concurency should be larger than 0")
         sys.exit(1)
 
     results = search_in_site(
         args.sitemap, args.search_str,
-        concurency=args.concurency,
+        concurrency=args.concurrency,
         search_in_all_responses=args.search_in_all
     )
     with contextlib.closing(results):
