@@ -47,10 +47,20 @@ def iter_sitemap_urls(sitemap_url):
     """
     try:
         tree = etree.parse(sitemap_url)
+    except etree.ParseError as error:
+        logger.error(f"Unable to parse {sitemap_url}: {error}")
+        return
     except OSError:
         # ETree cant't fetch the URL. Fallback with requests
         response = requests.get(sitemap_url, timeout=30)
-        root = etree.fromstring(response.content)
+        if not response.ok:
+            logger.error("Unable to fetch %s (%d)", sitemap_url, response.status_code)
+            return
+        try:
+            root = etree.fromstring(response.content)
+        except etree.ParseError as error:
+            logger.error(f"Unable to parse {sitemap_url}: {error}")
+            return
     else:
         root = tree.getroot()
 
@@ -67,7 +77,7 @@ def iter_sitemap_urls(sitemap_url):
             logger.debug('Location: %s', url)
             yield url
     else:
-        raise ValueError('Invalid sitemap')
+        logger.error('Invalid sitemap %s:', sitemap_url)
 
 
 def iter_search_in_urls(urls, search_string, search_in_all_responses=True):
