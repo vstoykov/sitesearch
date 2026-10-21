@@ -10,7 +10,7 @@ import urllib.parse
 import requests
 
 try:
-    # Try fast ans secure ETree first
+    # Try fast and secure ETree first
     from lxml import etree
 except ImportError:
     # Fallback to Python's builtin ETree
@@ -41,9 +41,9 @@ logger = logging.getLogger(__name__)
 def iter_sitemap_urls(sitemap_url):
     """
     Accept URL address that will be parsed as a sitemap.
-    Yelds URL addresses from the sitemap.
+    Yields URL addresses from the sitemap.
     If sitemap is an index then open each sitemap in the index
-    and yeld the URLs from there.
+    and yield the URLs from there.
     """
     try:
         tree = etree.parse(sitemap_url)
@@ -51,7 +51,7 @@ def iter_sitemap_urls(sitemap_url):
         logger.error(f"Unable to parse {sitemap_url}: {error}")
         return
     except OSError:
-        # ETree cant't fetch the URL. Fallback with requests
+        # ETree can't fetch the URL. Fallback with requests
         response = requests.get(sitemap_url, timeout=30)
         if not response.ok:
             logger.error("Unable to fetch %s (%d)", sitemap_url, response.status_code)
@@ -83,7 +83,7 @@ def iter_sitemap_urls(sitemap_url):
 def iter_search_in_urls(urls, search_string, search_in_all_responses=True):
     """
     Accepts iterable of urls and search string.
-    Yelds urls in which the given search string was found and the number
+    Yields urls in which the given search string was found and the number
     of occurrences of that string in the given url.
     """
     with requests.session() as session:
@@ -100,7 +100,7 @@ def iter_search_in_urls(urls, search_string, search_in_all_responses=True):
 
 def search_in_site(sitemap_url, search_string, concurency=4, search_in_all_responses=True):
     """
-    Concurently iterate over URLs in a sitemap and search for string.
+    Concurrently iterate over URLs in a sitemap and search for string.
     Return iterator with the results.
     Every result is a tuple of url and number of occurrences
     """
