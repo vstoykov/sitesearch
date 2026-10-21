@@ -33,7 +33,7 @@ LOGGING_LEVELS = {
     1: logging.INFO,
     2: logging.DEBUG,
 }
-
+USER_AGENT = "SiteSearch/2.0"
 
 logger = logging.getLogger(__name__)
 
@@ -45,35 +45,47 @@ def iter_sitemap_urls(sitemap_url):
     If sitemap is an index then open each sitemap in the index
     and yield the URLs from there.
     """
-    try:
-        tree = etree.parse(sitemap_url)
-    except etree.ParseError as error:
-        logger.error(f"Unable to parse {sitemap_url}: {error}")
-        return
-    except OSError:
-        # ETree can't fetch the URL. Fallback with requests
-        response = requests.get(sitemap_url, timeout=30)
-        if not response.ok:
-            logger.error("Unable to fetch %s (%d)", sitemap_url, response.status_code)
+    if sitemap_url.startswith(("https://", "http://")):
+        try:
+            response = requests.get(sitemap_url, timeout=30, headers={'User-Agent': USER_AGENT})
+            response.raise_for_status()
+        except requests.RequestException as e:
+            logger.error("Unable to fetch %s (%s)", sitemap_url, str(e))
             return
         try:
             root = etree.fromstring(response.content)
         except etree.ParseError as error:
             logger.error(f"Unable to parse {sitemap_url}: {error}")
             return
+
     else:
-        root = tree.getroot()
+        # Probbaly in the local filesystem. Delegate opening to etree
+        try:
+            tree = etree.parse(sitemap_url)
+        except OSError as error:
+            logger.error(f"Unable to open file: {sitemap_url} {error}")
+            return
+        except etree.ParseError as error:
+            logger.error(f"Unable to parse {sitemap_url}: {error}")
+            return
+        else:
+            root = tree.getroot()
+
 
     if root.tag == SITEMAP_INDEX_TAG:
         logger.debug('Processing sitemap index: %s', sitemap_url)
         for loc in root.iterfind('ns:sitemap/ns:loc', namespaces=XMLNS):
-            sitemap = loc.text.strip()
+            sitemap = (loc.text or "").strip()
+            if not sitemap:
+                continue
             logger.debug('Sitemap URL: %s', sitemap)
             yield from iter_sitemap_urls(sitemap)
     elif root.tag == URL_SET_TAG:
         logger.debug('Processing sitemap: %s', sitemap_url)
         for loc in root.iterfind('ns:url/ns:loc', namespaces=XMLNS):
-            url = loc.text.strip()
+            url = (loc.text or "").strip()
+            if not url:
+                continue
             logger.debug('Location: %s', url)
             yield url
     else:
@@ -88,7 +100,7 @@ def iter_search_in_urls(urls, search_string, search_in_all_responses=True):
     """
     with requests.session() as session:
         for url in urls:
-            response = session.get(url, timeout=30)
+            response = session.get(url, timeout=30, headers={'User-Agent': USER_AGENT})
             if response.status_code != 200 and not search_in_all_responses:
                 logger.warning('Skipping "%s" because status is: %d', url, response.status_code)
                 continue
