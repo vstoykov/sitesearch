@@ -43,7 +43,7 @@ def iter_sitemap_urls(sitemap_url):
     Accept URL address that will be parsed as a sitemap.
     Yelds URL addresses from the sitemap.
     If sitemap is an index then open each sitemap in the index
-    and yeeld the URLs from there.
+    and yeld the URLs from there.
     """
     try:
         tree = etree.parse(sitemap_url)
@@ -74,7 +74,7 @@ def iter_search_in_urls(urls, search_string, search_in_all_responses=True):
     """
     Accepts iterable of urls and search string.
     Yelds urls in which the given search string was found and the number
-    of ocurances of that string in the given url.
+    of occurrences of that string in the given url.
     """
     with requests.session() as session:
         for url in urls:
@@ -148,7 +148,7 @@ class safeiter:
 
 def main():
     arg_parser = argparse.ArgumentParser(description="Search for text in a website. Use site's XML sitemap to find URLs."
-                                                     "\nReturns CSV compatible output to the standart output.",
+                                                     "\nReturns CSV compatible output to the standard output.",
                                          formatter_class=argparse.RawTextHelpFormatter)
 
     arg_parser.add_argument('sitemap',
