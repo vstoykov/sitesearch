@@ -182,6 +182,10 @@ def main():
     logging.basicConfig(format='%(levelname)s: %(message)s',
                         level=LOGGING_LEVELS[args.verbose])
 
+    if args.concurency < 1:
+        logger.error("Concurency should be larger than 0")
+        sys.exit(1)
+
     results = search_in_site(
         args.sitemap, args.search_str,
         concurency=args.concurency,
